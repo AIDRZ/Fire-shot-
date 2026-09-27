@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,orientation=landscape">
+<title>Fire Shot - Offline</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b10;font-family:Arial,sans-serif;color:#fff}
+#game{display:block;width:100vw;height:100vh;background:#111}
+#hud{position:fixed;inset:0;pointer-events:none}
+#title{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-weight:900;font-size:24px;text-shadow:0 2px 6px #000}
+#stats{position:absolute;top:12px;right:12px;background:#0009;padding:8px 12px;border-radius:12px;font-size:15px}
+#hpWrap{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:min(45vw,420px);height:22px;background:#250c0c;border:2px solid #fff8;border-radius:15px;overflow:hidden}
+#hp{height:100%;width:100%;background:#e52b2b}
+#hpText{position:absolute;inset:0;text-align:center;line-height:18px;font-weight:900}
+#weapon{position:absolute;bottom:48px;right:18px;background:#0009;padding:10px 14px;border-radius:12px}
+#msg{position:absolute;top:55%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:900;text-align:center;text-shadow:0 3px 8px #000}
+#cross{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);opacity:.9}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff}
+#cross:before{width:22px;height:2px;top:10px;left:0}#cross:after{width:2px;height:22px;top:0;left:10px}
+#controls{display:none;position:fixed;inset:0;z-index:12;pointer-events:none}
+@media (pointer:coarse), (hover:none){
+  #controls{display:block}
+}
+.btn{pointer-events:auto;border:1px solid #ffffff55;background:#111b;color:#fff;border-radius:18px;font-weight:900;user-select:none;touch-action:none}
+#joy{pointer-events:auto;position:absolute;left:18px;bottom:18px;width:140px;height:140px;border-radius:50%;background:#ffffff18;border:2px solid #fff5}
+#stick{position:absolute;width:56px;height:56px;border-radius:50%;left:42px;top:42px;background:#fff4}
+.action{position:absolute;width:68px;height:68px;border-radius:50%}
+#fire{pointer-events:auto;right:22px;bottom:22px;background:#b41414aa}#reload{pointer-events:auto;right:102px;bottom:102px}
+#swap{pointer-events:auto;right:22px;bottom:102px}#heal{pointer-events:auto;right:102px;bottom:22px}
+@media(max-width:900px){#controls{display:block}}
+#rotate{display:none;position:fixed;inset:0;z-index:20;background:#080b10;align-items:center;justify-content:center;text-align:center;font-size:24px;font-weight:900;padding:30px}
+@media(max-width:900px) and (orientation:portrait){#rotate{display:flex}}
+#menu{position:fixed;inset:0;z-index:100;background:radial-gradient(circle,#172238,#05070a);display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:manipulation}
+#start{position:relative;z-index:101;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.card{width:min(90vw,430px);padding:28px;border-radius:22px;background:#101722ee;border:1px solid #ffffff25;text-align:center}
+.card h1{margin:0 0 8px;font-size:38px}.card p{opacity:.75}
+.card button{width:100%;padding:16px;border:0;border-radius:14px;background:#17834a;color:#fff;font-size:20px;font-weight:900}
+.small{font-size:12px;opacity:.6;margin-top:12px}
+</style>
+
+<style>
+#stats{display:flex;gap:10px;align-items:center}
+.stat{padding:5px 8px;background:#0b111acc;border:1px solid #ffffff22;border-radius:7px;font-size:11px;letter-spacing:.5px}
+.stat b{font-size:14px}
+.hpStat b{color:#55e27d}
+#weapon{font-size:13px;letter-spacing:.7px}
+.weaponIcon{display:inline-block;width:18px;height:7px;background:#ddd;border-radius:2px;vertical-align:middle}
+.sep{opacity:.45;margin:0 5px}
+.action{font-size:11px;letter-spacing:.4px;background:#111d}
+#fire{width:84px;height:84px;background:#a51e24dd;border:2px solid #ff6b70}
+#reload,#swap,#heal{width:68px;height:50px;border-radius:14px}
+#reload{right:112px;bottom:108px}
+#swap{right:30px;bottom:108px}
+#heal{right:112px;bottom:30px}
+#joy{box-shadow:inset 0 0 0 12px #ffffff08}
+#stick{background:#ffffff33;border:2px solid #fff8}
+@media(max-width:700px){
+ #title{font-size:19px}
+ #stats{top:8px;right:8px;gap:4px}
+ .stat{font-size:9px;padding:4px 5px}
+ .stat b{font-size:12px}
+ #weapon{bottom:8px;right:8px;padding:7px 9px}
+}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="rotate">📱↔️<br><br>أدر الهاتف إلى الوضع الأفقي</div>
+
+<div id="menu">
+  <div class="card">
+    <h1>🔥 FIRE SHOT</h1>
+    <p>OFFLINE — لا يحتاج إنترنت</p>
+    <button id="start">🎮 دخول Offline</button>
+    <div class="small">المحرك مدمج داخل الملف ولا يستخدم CDN أو ملفات خارجية.</div>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="title">FIRE SHOT</div>
+  <div id="stats"><span class="stat">PLAYERS <b>30</b></span><span class="stat hpStat">HP <b id="h">200</b></span><span class="stat">KILLS <b id="kills">0</b></span></div>
+  <div id="cross"></div>
+  <div id="hpWrap"><div id="hp"></div><div id="hpText">200 / 200</div></div>
+  <div id="weapon"><span class="weaponIcon">▰</span> <span id="gun">RIFLE</span> <span class="sep">|</span> AMMO <span id="ammo">30</span></div>
+  <div id="msg"></div>
+</div>
+
+<div id="controls" style="touch-action:none">
+  <div id="joy" class="btn"><div id="stick"></div></div>
+  <button id="fire" class="btn action">FIRE</button>
+  <button id="reload" class="btn action">RELOAD</button>
+  <button id="swap" class="btn action">SWAP</button>
+  <button id="heal" class="btn action">MED</button>
+</div>
+
+<script>
+'use strict';
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+let W=innerWidth,H=innerHeight;
+function resize(){W=innerWidth;H=innerHeight;c.width=W;c.height=H} addEventListener('resize',resize);resize();
+
+const map=[
+"111111111111111111",
+"100000000000000001",
+"100001000010000001",
+"100001000010000001",
+"100000000000000001",
+"100011000011000001",
+"100000000000000001",
+"100000111100000001",
+"100000000000000001",
+"100011000011000001",
+"100000000000000001",
+"100001000010000001",
+"100000000000000001",
+"111111111111111111"];
+const MW=map[0].length,MH=map.length;
+let px=8.5,py=11.2,pa=-Math.PI/2,hp=200,ammo=30,weapon=0,kills=0,started=false,reloading=false;
+const bots=[
+ {x:8.5,y:8.2,alive:true,style:0,name:'Rex'},
+ {x:6.8,y:7.2,alive:true,style:1,name:'Volt'},
+ {x:10.2,y:7.2,alive:true,style:2,name:'Shade'},
+ {x:7.3,y:5.8,alive:true,style:3,name:'Titan'},
+ {x:9.7,y:5.8,alive:true,style:4,name:'Nova'}
+];
+const keys={}; let firing=false;
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.key===' '){firing=true;e.preventDefault()}});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=0;if(e.key===' ')firing=false});
+function wall(x,y){return y<0||x<0||y>=MH||x>=MW||map[Math.floor(y)][Math.floor(x)]==='1'}
+function move(dx,dy){let nx=px+dx,ny=py+dy;if(!wall(nx,py))px=nx;if(!wall(px,ny))py=ny}
+function cast(a){
+ let ca=Math.cos(a),sa=Math.sin(a),d=0;
+ while(d<30){d+=.025;let x=px+ca*d,y=py+sa*d;if(wall(x,y))return d}
+ return 30;
+}
+function shoot(){
+ if(!started||reloading||ammo<=0)return;
+ ammo--; document.getElementById('ammo').textContent=ammo;
+ let best=null,bd=999;
+ for(const b of bots)if(b.alive){
+   let dx=b.x-px,dy=b.y-py,dist=Math.hypot(dx,dy);
+   let da=Math.atan2(Math.sin(Math.atan2(dy,dx)-pa),Math.cos(Math.atan2(dy,dx)-pa));
+   if(Math.abs(da)<0.06 && dist<bd && cast(pa)>dist-0.15){best=b;bd=dist}
+ }
+ if(best){best.alive=false;kills++;document.getElementById('kills').textContent=kills}
+}
+function reload(){
+ if(reloading||ammo===30)return;reloading=true;
+ setTimeout(()=>{ammo=30;reloading=false;document.getElementById('ammo').textContent=ammo},2500);
+}
+function heal(){hp=Math.min(200,hp+70);ui()}
+function ui(){document.getElementById('h').textContent=Math.ceil(hp);document.getElementById('hp').style.width=(hp/200*100)+'%';document.getElementById('hpText').textContent=Math.ceil(hp)+' / 200'}
+function render(){
+ let sky=ctx.createLinearGradient(0,0,0,H/2);sky.addColorStop(0,'#101a2c');sky.addColorStop(1,'#3c5062');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H/2);
+ ctx.fillStyle='#263029';ctx.fillRect(0,H/2,W,H/2);
+ const fov=Math.PI/3, rays=Math.min(360,Math.floor(W/2));
+ for(let i=0;i<rays;i++){
+   let a=pa-fov/2+fov*i/rays,d=cast(a),ca=Math.cos(a-pa);d*=ca;
+   let sh=Math.min(H,H/(d*.75)),top=H/2-sh/2;
+   ctx.fillStyle=`rgb(${Math.max(25,130-d*5)},${Math.max(30,140-d*4)},${Math.max(35,150-d*3)})`;
+   ctx.fillRect(i*W/rays,top,W/rays+1,sh);
+ }
+ // bots as simple 3D targets
+ for(const b of bots)if(b.alive){
+   let dx=b.x-px,dy=b.y-py,dist=Math.hypot(dx,dy);
+   let da=Math.atan2(Math.sin(Math.atan2(dy,dx)-pa),Math.cos(Math.atan2(dy,dx)-pa));
+   if(Math.abs(da)<fov/2 && cast(Math.atan2(dy,dx))>dist-.1){
+     let sx=W/2+(da/(fov/2))*(W/2),sz=Math.min(H*0.7,H/(dist*.8));
+     const botColors=['#e04b4b','#38a8ff','#9b6cff','#d79a32','#35d58a'];
+     const accent=['#ffd04a','#eaf7ff','#ff5bd4','#4b4b55','#f4f4f4'];
+     const col=botColors[b.style], ac=accent[b.style];
+     // body
+     ctx.fillStyle=col;
+     ctx.fillRect(sx-sz*.18,H/2-sz*.15,sz*.36,sz*.60);
+     // shoulders
+     ctx.fillRect(sx-sz*.28,H/2-sz*.08,sz*.16,sz*.22);
+     ctx.fillRect(sx+sz*.12,H/2-sz*.08,sz*.16,sz*.22);
+     // head
+     ctx.beginPath();ctx.arc(sx,H/2-sz*.28,sz*.16,0,Math.PI*2);ctx.fillStyle='#c99b78';ctx.fill();
+     // helmet / hair style
+     ctx.fillStyle=ac;
+     if(b.style===0){
+       ctx.fillRect(sx-sz*.16,H/2-sz*.43,sz*.32,sz*.08);
+     }else if(b.style===1){
+       ctx.beginPath();ctx.arc(sx,H/2-sz*.31,sz*.18,Math.PI,Math.PI*2);ctx.fill();
+     }else if(b.style===2){
+       ctx.fillRect(sx-sz*.16,H/2-sz*.42,sz*.32,sz*.14);
+       ctx.fillStyle='#111';ctx.fillRect(sx-sz*.13,H/2-sz*.36,sz*.26,sz*.035);
+     }else if(b.style===3){
+       ctx.fillRect(sx-sz*.20,H/2-sz*.43,sz*.40,sz*.12);
+     }else{
+       ctx.beginPath();ctx.arc(sx,H/2-sz*.30,sz*.19,Math.PI,Math.PI*2);ctx.fill();
+     }
+     // weapon
+     ctx.fillStyle='#161a20';
+     ctx.fillRect(sx+sz*.15,H/2+sz*.02,sz*.32,sz*.055);
+   }
+ }
+}
+let last=performance.now(),shotTimer=0;
+function loop(t){
+ let dt=Math.min(.05,(t-last)/1000);last=t;
+ if(started){
+   let speed=keys.shift?.4:2.6;
+   let fx=0,fy=0;
+   if(keys.w||keys.arrowup){fx+=Math.cos(pa)*speed*dt;fy+=Math.sin(pa)*speed*dt}
+   if(keys.s||keys.arrowdown){fx-=Math.cos(pa)*speed*dt;fy-=Math.sin(pa)*speed*dt}
+   if(keys.a||keys.arrowleft){fx+=Math.cos(pa-Math.PI/2)*speed*dt;fy+=Math.sin(pa-Math.PI/2)*speed*dt}
+   if(keys.d||keys.arrowright){fx+=Math.cos(pa+Math.PI/2)*speed*dt;fy+=Math.sin(pa+Math.PI/2)*speed*dt}
+   move(fx,fy);
+   if(firing){shotTimer-=dt;if(shotTimer<=0){shoot();shotTimer=.13}}
+   render();
+   if(kills===bots.length)document.getElementById('msg').textContent='🏆 فزت!';
+   if(hp<=0)document.getElementById('msg').textContent='💀 انتهت اللعبة';
+ } else {render()}
+ requestAnimationFrame(loop)
+}
+requestAnimationFrame(loop);
+
+const startButton=document.getElementById('start');
+function startOffline(e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  started=true;
+  document.getElementById('menu').style.display='none';
+  document.getElementById('msg').textContent='';
+}
+let startHandled=false;
+function startOnce(e){
+  if(startHandled) return;
+  startHandled=true;
+  startOffline(e);
+}
+startButton.addEventListener('click',startOnce);
+startButton.addEventListener('pointerup',startOnce);
+document.getElementById('reload').onclick=reload;
+document.getElementById('swap').onclick=()=>{weapon=1-weapon;document.getElementById('gun').textContent=weapon?'Pistol':'Rifle'};
+document.getElementById('heal').onclick=heal;
+const fb=document.getElementById('fire');fb.onpointerdown=()=>{firing=true};fb.onpointerup=()=>{firing=false};fb.onpointercancel=()=>{firing=false};
+let joy=document.getElementById('joy'),stick=document.getElementById('stick'),jx=0,jy=0;
+joy.onpointerdown=e=>{joy.setPointerCapture?.(e.pointerId);};
+joy.onpointermove=e=>{if(e.pointerType==='touch' || e.buttons){let r=joy.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2,m=Math.min(50,Math.hypot(x,y));let a=Math.atan2(y,x);jx=Math.cos(a)*m/50;jy=Math.sin(a)*m/50;stick.style.left=(39+jx*38)+'px';stick.style.top=(39+jy*38)+'px';keys.w=jy<-.20;keys.s=jy>.20;keys.a=jx<-.20;keys.d=jx>.20}};
+joy.onpointerup=()=>{jx=jy=0;keys.w=keys.s=keys.a=keys.d=0;stick.style.left='42px';stick.style.top='42px'};
+joy.onpointercancel=()=>{jx=jy=0;keys.w=keys.s=keys.a=keys.d=0;stick.style.left='42px';stick.style.top='42px'};
+
+let aiming=false,lastX=0;
+c.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'){aiming=true;lastX=e.clientX}
+});
+c.addEventListener('pointermove',e=>{
+  if(aiming && e.pointerType==='touch'){
+    pa += (e.clientX-lastX)*0.006;
+    lastX=e.clientX;
+  }
+});
+c.addEventListener('pointerup',()=>aiming=false);
+c.addEventListener('pointercancel',()=>aiming=false);
+
+</script>
+</body></html>
